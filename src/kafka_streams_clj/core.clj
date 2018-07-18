@@ -1,7 +1,9 @@
 (ns kafka-streams-clj.core
   (:gen-class)
   (:import (org.apache.kafka.streams.kstream KeyValueMapper Predicate KStream)
-           (org.apache.kafka.streams KeyValue StreamsBuilder)))
+           (org.apache.kafka.streams KeyValue StreamsBuilder KafkaStreams StreamsConfig)
+           (java.util Properties)
+           (org.apache.kafka.streams.processor WallclockTimestampExtractor)))
 
 (defn ^StreamsBuilder builder []
   (StreamsBuilder.))
@@ -14,7 +16,9 @@
   (reify KeyValueMapper
     (apply [_ key value]
       (let [res (map-func key value)]
-        (KeyValue/pair (:key res) (:value res))))))
+        (if (and (coll? res) (not (map? res)))
+          (map #(KeyValue/pair (:key %) (:value %)) res)
+          (KeyValue/pair (:key res) (:value res)))))))
 
 (defn get-predicate [predicate-func]
   (reify Predicate
